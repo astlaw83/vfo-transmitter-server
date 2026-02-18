@@ -1,7 +1,7 @@
 <?php
-ini_set('display_errors', 1);  
-ini_set('display_startup_errors', 1);  
-error_reporting(E_ALL);  
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 // Server pin for authentication (set this to secure your endpoint)
 $server_pin = ""; // Leave empty to disable pin authentication
@@ -27,7 +27,7 @@ if (!extension_loaded('apcu') || !apcu_enabled()) {
 // Function to store aircraft position in APCu
 function store_aircraft_position($callsign, $aircraft_data) {
     $position_key = APCU_PREFIX . 'position_' . $callsign;
-    
+
     // Store current position
     return apcu_store($position_key, $aircraft_data, POSITION_TTL);
 }
@@ -41,11 +41,11 @@ function get_rate_limit_key($callsign, $ip) {
 function is_rate_limited($callsign, $ip) {
     $rate_key = get_rate_limit_key($callsign, $ip);
     $last_update = apcu_fetch($rate_key);
-    
+
     if ($last_update !== false && (time() - $last_update) < 1) {
         return true;
     }
-    
+
     // Update rate limit timestamp
     apcu_store($rate_key, time(), 10); // 10 second TTL for rate limit
     return false;
@@ -81,7 +81,7 @@ if (empty($server_pin) || trim($user_pin) === trim($server_pin)) {
         if ($debug) {
             error_log("DEBUG: Missing required fields - Callsign: '$callsign', AircraftType: '$aircraft_type', PilotName: '$pilot_name', GroupName: '$group_name'");
         }
-        print "Insufficient data received";	
+        print "Insufficient data received";
     } else {
         // Check rate limiting
         if (is_rate_limited($callsign, $_SERVER['REMOTE_ADDR'])) {
@@ -131,10 +131,15 @@ if (empty($server_pin) || trim($user_pin) === trim($server_pin)) {
             } else {
                 print "error storing data";
             }
+
+            // append data to sqlite db for flight history
+            $date = new DateTime();
+            $unix = $date->format('Uv');
+
+            $db = "flights/$callsign/$unix.sqlite";
+            $dsn = "sqlite:$db";
         }
     }
 } else {
     print "invalid pin";
 }
-
-?>
