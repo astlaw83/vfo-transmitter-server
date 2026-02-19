@@ -68,7 +68,7 @@ function initFlightDatabase(string $callsign, string $unix): PDO {
 
 function createTable(PDO $pdo): void {
     $statement = 'CREATE TABLE IF NOT EXISTS history (
-        position_id   INTEGER PRIMARY KEY,
+        item_id   INTEGER PRIMARY KEY,
         callsign TEXT,
         pilot_name TEXT,
         group_name TEXT,
@@ -170,11 +170,8 @@ if (empty($server_pin) || trim($user_pin) === trim($server_pin)) {
             }
 
             // append data to sqlite db for flight history
-            $date = new DateTime();
-            $unix = $date->format('Uv');
-
             try {
-                $pdo = initFlightDatabase($callsign, $unix);
+                $pdo = initFlightDatabase($callsign, $aircraft_data['created']);
                 createTable($pdo);
             } catch (Exception $e) {
                 error_log($e->getMessage());
