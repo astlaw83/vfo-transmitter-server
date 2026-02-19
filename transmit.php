@@ -68,8 +68,10 @@ function initFlightDatabase(string $callsign, string $unix): PDO {
 
 function createTable(PDO $pdo): void {
     $statement = 'CREATE TABLE IF NOT EXISTS history (
-        item_id   INTEGER PRIMARY KEY,
+        item_id INTEGER PRIMARY KEY,
+        timestamp INTEGER,
         callsign TEXT,
+        aircraft_type TEXT,
         pilot_name TEXT,
         group_name TEXT,
         msfs_server TEXT,
@@ -86,6 +88,68 @@ function createTable(PDO $pdo): void {
     )';
 
     $pdo->exec($statement);
+}
+
+function insertHistory(PDO $pdo): int {
+    $sql = 'INSERT INTO history (
+        timestamp,
+        callsign,
+        aircraft_type,
+        pilot_name,
+        group_name,
+        msfs_server,
+        transponder_code,
+        latitude,
+        longitude,
+        altitude,
+        heading,
+        airspeed,
+        groundspeed,
+        touchdown_velocity,
+        notes,
+        transmitter_version
+    )
+    VALUES(
+        :timestamp,
+        :callsign,
+        :aircraft_type,
+        :pilot_name,
+        :group_name,
+        :msfs_server,
+        :transponder_code,
+        :latitude,
+        :longitude,
+        :altitude,
+        :heading,
+        :airspeed,
+        :groundspeed,
+        :touchdown_velocity,
+        :notes,
+        :transmitter_version
+    )';
+
+    $stmt = $pdo->prepare($sql);
+
+    $stmt->execute([
+        ':timestamp'          => (int)(microtime(true) * 1000),
+        ':callsign'           => $GLOBALS['callsign'],
+        ':aircraft_type'      => $GLOBALS['aircraft_type'],
+        ':pilot_name'         => $GLOBALS['pilot_name'],
+        ':group_name'         => $GLOBALS['group_name'],
+        ':msfs_server'        => $GLOBALS['msfs_server'],
+        ':transponder_code'   => $GLOBALS['transponder_code'],
+        ':latitude'           => $GLOBALS['latitude'],
+        ':longitude'          => $GLOBALS['longitude'],
+        ':altitude'           => $GLOBALS['altitude'],
+        ':heading'            => $GLOBALS['heading'],
+        ':airspeed'           => $GLOBALS['airspeed'],
+        ':groundspeed'        => $GLOBALS['groundspeed'],
+        ':touchdown_velocity' => $GLOBALS['touchdown_velocity'],
+        ':notes'              => $GLOBALS['notes'],
+        ':transmitter_version'            => $GLOBALS['version'],
+    ]);
+
+    return $pdo->lastInsertId();
 }
 
 // Get the data from the request (support both GET and POST)
@@ -173,6 +237,7 @@ if (empty($server_pin) || trim($user_pin) === trim($server_pin)) {
             try {
                 $pdo = initFlightDatabase($callsign, $aircraft_data['created']);
                 createTable($pdo);
+                insertHistory($pdo);
             } catch (Exception $e) {
                 error_log($e->getMessage());
             }
