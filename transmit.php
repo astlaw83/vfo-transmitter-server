@@ -51,15 +51,13 @@ function is_rate_limited($callsign, $ip) {
     return false;
 }
 
-/**
- * initializes a flight database and ensures path safety
- */
+// initializes a flight database
 function initFlightDatabase(string $callsign, string $unix): PDO {
-    $path = "flights/$callsign";
+    $path = "./flights/$callsign";
 
-    // create the
+    // create the dir
     if (!file_exists($path)) {
-        mkdir($path, 0755, true);
+        mkdir($path, 0755, true) or die("failed to create $path/$unix.sqlite");
     }
 
     $dsn = "sqlite:$path/$unix.sqlite";
