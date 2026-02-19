@@ -51,6 +51,45 @@ function is_rate_limited($callsign, $ip) {
     return false;
 }
 
+/**
+ * initializes a flight database and ensures path safety
+ */
+function initFlightDatabase(string $callsign, string $unix): PDO {
+    $path = "flights/$callsign";
+
+    // create the
+    if (!file_exists($path)) {
+        mkdir($path, 0755, true);
+    }
+
+    $dsn = "sqlite:$path/$unix.sqlite";
+    $pdo = new PDO($dsn);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    return $pdo;
+}
+
+function createTable(PDO $pdo): void {
+    $statement = 'CREATE TABLE IF NOT EXISTS history (
+        position_id   INTEGER PRIMARY KEY,
+        callsign TEXT,
+        pilot_name TEXT,
+        group_name TEXT,
+        msfs_server TEXT,
+        transponder_code TEXT,
+        latitude TEXT,
+        longitude TEXT,
+        altitude TEXT,
+        heading TEXT,
+        airspeed TEXT,
+        groundspeed TEXT,
+        touchdown_velocity TEXT,
+        notes TEXT,
+        transmitter_version TEXT
+    )';
+
+    $pdo->exec($statement);
+}
+
 // Get the data from the request (support both GET and POST)
 $user_pin           = $_REQUEST["Pin"] ?? "";
 $callsign           = $_REQUEST["Callsign"] ?? "";
@@ -136,8 +175,12 @@ if (empty($server_pin) || trim($user_pin) === trim($server_pin)) {
             $date = new DateTime();
             $unix = $date->format('Uv');
 
-            $db = "flights/$callsign/$unix.sqlite";
-            $dsn = "sqlite:$db";
+            try {
+                $pdo = initFlightDatabase($callsign, $unix);
+                createTable($pdo);
+            } catch (Exception $e) {
+                error_log($e->getMessage());
+            }
         }
     }
 } else {
